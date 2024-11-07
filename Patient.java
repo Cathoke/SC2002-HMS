@@ -1,7 +1,7 @@
 
-import java.util.Date;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Patient extends User {
@@ -89,21 +89,18 @@ public class Patient extends User {
     }
 
     // To View Appointments
-    public void viewAvailableAppointments(List<Appointment> allAppointments) {
+    public void viewAvailableAppointments(AppointmentManager manager) {
+        List<Appointment> availableAppointments = manager.getAvailableAppointments();
         System.out.println("Available Appointment Slots:");
-        boolean anyAvailable = false;
-        for (Appointment appointment : allAppointments) {
-            if (appointment.getStatus().equalsIgnoreCase("available")) { // Assuming 'available' indicates open slots
-                System.out.println("Date: " + appointment.getAppointmentDate() +
-                        ", Time: " + appointment.getAppointmentTime() +
-                        ", Doctor: " + appointment.getDoctor().getName());
-                anyAvailable = true;
+        if (availableAppointments.isEmpty()) {
+            System.out.println("No available appointments.");
+        } else {
+            for (Appointment appointment : availableAppointments) {
+                System.out.println("Date: " + appointment.getAppointmentDate() + ", Time: " + appointment.getAppointmentTime() + ", Doctor: " + appointment.getDoctor().getName());
             }
         }
-        if (!anyAvailable) {
-            System.out.println("No available appointments at the moment.");
-        }
     }
+
 
     public void scheduleAppointment(Doctor doctor, Date date, Time time) {
         // Create a new Appointment object to check availability
@@ -120,11 +117,11 @@ public class Patient extends User {
                     appointment.getStatus().equalsIgnoreCase("available")) {
 
                 // Mark the appointment as confirmed
-                appointment.updateStatus("confirmed");
+                appointment.updateStatus("requested");
 
                 // Add the appointment to the patient's appointment history
                 appointmentHistory.add(appointment);
-                System.out.println("Appointment successfully scheduled on " + date + " at " + time + " with Dr. "
+                System.out.println("Appointment requested on " + date + " at " + time + " with Dr. "
                         + doctor.getName());
                 isScheduled = true;
                 break;

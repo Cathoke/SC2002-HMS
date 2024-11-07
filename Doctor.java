@@ -1,7 +1,7 @@
 import java.sql.Time;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Date;
+import java.util.List;
 
 public class Doctor extends User {
     private String doctorID;
@@ -94,30 +94,27 @@ public class Doctor extends User {
                 + currentDate);
     }
 
-    public void setAvailability(Date date, Time time, boolean isAvailable) {
-        // Check if the appointment slot already exists
+    public void setAvailability(Date date, Time time, boolean isAvailable, AppointmentManager manager) {
+        // First, update doctor's local appointments
         boolean slotExists = false;
-
         for (Appointment appointment : upcomingAppointments) {
             if (appointment.getAppointmentDate().equals(date) && appointment.getAppointmentTime().equals(time)) {
-                // Update the status of the existing slot
                 appointment.updateStatus(isAvailable ? "available" : "unavailable");
                 slotExists = true;
-                System.out.println("Updated availability for slot on " + date + " at " + time + " to "
-                        + (isAvailable ? "available" : "unavailable"));
+                System.out.println("Updated availability for slot on " + date + " at " + time);
                 break;
             }
         }
 
-        // If the slot doesn't exist, create a new one
         if (!slotExists && isAvailable) {
             Appointment newAppointment = new Appointment(null, this, date, time, "available");
             upcomingAppointments.add(newAppointment);
-            System.out.println("New available slot added on " + date + " at " + time);
-        } else if (!slotExists && !isAvailable) {
-            System.out.println("Slot on " + date + " at " + time + " is already unavailable.");
+            // Sync with AppointmentManager
+            manager.addAppointment(newAppointment);
+            System.out.println("New available slot added.");
         }
     }
+
 
     public void acceptAppointment(Appointment appointment) {
         if (appointment == null) {

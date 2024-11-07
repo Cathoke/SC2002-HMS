@@ -37,7 +37,7 @@ public class AppointmentManager {
         return null; // No matching appointment found
     }
 
-    // Method to print all appointments (for debugging or user display)
+    // Method to list all appointments
     public void listAllAppointments() {
         if (appointments.isEmpty()) {
             System.out.println("No appointments scheduled.");
@@ -46,5 +46,49 @@ public class AppointmentManager {
                 System.out.println(appointment);
             }
         }
+    }
+
+    // Method to retrieve all available appointments
+    public List<Appointment> getAvailableAppointments() {
+        List<Appointment> availableAppointments = new ArrayList<>();
+        for (Appointment appointment : appointments) {
+            if (appointment.getStatus().equalsIgnoreCase("available")) {
+                availableAppointments.add(appointment);
+            }
+        }
+        return availableAppointments;
+    }
+
+    // Method to retrieve all pending appointments (e.g., for approval by doctors)
+    public List<Appointment> getPendingAppointments() {
+        List<Appointment> pendingAppointments = new ArrayList<>();
+        for (Appointment appointment : appointments) {
+            if (appointment.getStatus().equalsIgnoreCase("requested")) {
+                pendingAppointments.add(appointment);
+            }
+        }
+        return pendingAppointments;
+    }
+
+    // Method to retrieve appointments for a specific doctor
+    public List<Appointment> getAppointmentsByDoctor(Doctor doctor) {
+        List<Appointment> doctorAppointments = new ArrayList<>();
+        for (Appointment appointment : appointments) {
+            if (appointment.getDoctor().equals(doctor)) {
+                doctorAppointments.add(appointment);
+            }
+        }
+        return doctorAppointments;
+    }
+
+    // Method to retrieve appointments for a specific patient
+    public List<Appointment> getAppointmentsByPatient(Patient patient) {
+        List<Appointment> patientAppointments = new ArrayList<>();
+        for (Appointment appointment : appointments) {
+            if (appointment.getPatient().equals(patient)) {
+                patientAppointments.add(appointment);
+            }
+        }
+        return patientAppointments;
     }
 }
