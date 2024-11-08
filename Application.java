@@ -1,4 +1,7 @@
-import java.sql.Time;
+import java.io.BufferedReader;
+import java.io.FileReader;  // Added for file reading
+import java.io.IOException;      // Added for file reading
+import java.sql.Time;     // Added for handling file reading errors
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -8,11 +11,9 @@ import java.util.Scanner;
 
 public class Application {
     public static void main(String[] args) {
-        // Initialize Users
-        Administrator admin = new Administrator("admin1", "adminPass", "Alice");
-        Doctor doctor = new Doctor("doc1", "Dr. Bob", "docPass", new ArrayList<>());
-        Patient patient = new Patient("pat1", "2000-01-01", "Male", "1234567890", "O+", "John", "patPass", new ArrayList<>(), new ArrayList<>());
-        Pharmacist pharmacist = new Pharmacist("pharm1", "pharmPass", "Eve");
+        // Changes: Initialize users from CSV files
+        List<User> staff = loadStaffData("Staff_List.csv");  // Load staff from CSV
+        List<Patient> patients = loadPatientData("patient_list.csv");  // Load patients from CSV
 
         AppointmentManager manager = new AppointmentManager(); // Initialize AppointmentManager
 
@@ -21,16 +22,79 @@ public class Application {
         System.out.println("Welcome to the Hospital Management System!");
 
         while (true) {  // Keep running the application to allow multiple users to log in and out
-            User currentUser = authenticateUser(scanner, admin, doctor, patient, pharmacist);
+            User currentUser = authenticateUser(scanner, staff, patients);
 
             if (currentUser != null) {
                 System.out.println("\nLogin successful! Welcome, " + currentUser.name + ".");
-                displayRoleMenu(currentUser, scanner, manager, doctor);
+                displayRoleMenu(currentUser, scanner, manager, staff, patients);
             }
         }
     }
 
-    private static User authenticateUser(Scanner scanner, Administrator admin, Doctor doctor, Patient patient, Pharmacist pharmacist) {
+    // New Method: Load staff from CSV
+    public static List<User> loadStaffData(String filePath) {
+        List<User> users = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line = br.readLine(); // Skip the header
+            while ((line = br.readLine()) != null) {
+                String[] details = line.split(",");
+                String id = details[0].trim();
+                String name = details[1].trim();
+                String role = details[2].trim();
+
+                switch (role.toLowerCase()) {
+                    case "administrator":
+                        users.add(new Administrator(id, "adminPass", name));
+                        break;
+                    case "doctor":
+                        //users.add(new Doctor(id, name, "docPass", new ArrayList<>()));
+                        Doctor doctor = new Doctor(id, name, "docPass", new ArrayList<>());
+                        users.add(doctor);
+                        break;
+                    case "pharmacist":
+                        users.add(new Pharmacist(id, "pharmPass", name));
+                        break;
+                    default:
+                        System.out.println("Unknown role: " + role);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
+
+    // New Method: Load patients from CSV
+    public static List<Patient> loadPatientData(String filePath) {
+        List<Patient> patients = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line = br.readLine(); // Skip the header
+            while ((line = br.readLine()) != null) {
+                String[] details = line.split(",");
+                if (details.length < 6) {
+                    System.out.println("Invalid data row, skipping: " + line);
+                    continue;
+                }
+
+                String id = details[0].trim();
+                String name = details[1].trim();
+                String dob = details[2].trim();
+                String gender = details[3].trim();
+                String bloodType = details[4].trim();
+                String contactInfo = details[5].trim();
+
+                patients.add(new Patient(id, dob, gender, contactInfo, bloodType, name, "password", new ArrayList<>(), new ArrayList<>()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return patients;
+    }
+
+
+
+    // Updated Method: Now accepts dynamic lists of users
+    private static User authenticateUser(Scanner scanner, List<User> staff, List<Patient> patients) {
         User currentUser = null;
 
         while (currentUser == null) {
@@ -50,24 +114,18 @@ public class Application {
 
             switch (roleChoice) {
                 case 1:
-                    if (admin.login(hospitalID, password)) {
-                        currentUser = admin;
-                    }
-                    break;
                 case 2:
-                    if (doctor.login(hospitalID, password)) {
-                        currentUser = doctor;
-                    }
+                case 4:
+                    currentUser = staff.stream()
+                            .filter(user -> user.getHospitalID().equals(hospitalID) && user.getPassword().equals(password))
+                            .findFirst()
+                            .orElse(null);
                     break;
                 case 3:
-                    if (patient.login(hospitalID, password)) {
-                        currentUser = patient;
-                    }
-                    break;
-                case 4:
-                    if (pharmacist.login(hospitalID, password)) {
-                        currentUser = pharmacist;
-                    }
+                    currentUser = patients.stream()
+                            .filter(patient -> patient.getHospitalID().equals(hospitalID) && patient.getPassword().equals(password))
+                            .findFirst()
+                            .orElse(null);
                     break;
                 default:
                     System.out.println("Invalid choice, please try again.");
@@ -81,7 +139,8 @@ public class Application {
         return currentUser;
     }
 
-    private static void displayRoleMenu(User user, Scanner scanner, AppointmentManager manager, Doctor doctor) {
+
+    private static void displayRoleMenu(User user, Scanner scanner, AppointmentManager manager, List<User> staff, List<Patient> patients) {
         boolean logout = false;  // Track if the user chooses to logout
         while (!logout) {
             user.displayMenu();
@@ -94,10 +153,10 @@ public class Application {
                 handleAdminMenu(admin, choice, scanner);
             } else if (user instanceof Doctor) {
                 Doctor docUser = (Doctor) user;
-                logout = handleDoctorMenu(docUser, choice, scanner, manager);  // Capture logout status
+                logout = handleDoctorMenu(docUser, choice, scanner, manager, patients);  // Capture logout status
             } else if (user instanceof Patient) {
                 Patient patUser = (Patient) user;
-                logout = handlePatientMenu(patUser, choice, doctor, scanner, manager);  // Capture logout status
+                logout = handlePatientMenu(patUser, choice, null, scanner, manager);  // Capture logout status
             } else if (user instanceof Pharmacist) {
                 Pharmacist pharmacist = (Pharmacist) user;
                 handlePharmacistMenu(pharmacist, choice, scanner);
@@ -136,38 +195,41 @@ public class Application {
         }
     }
 
-    private static boolean handleDoctorMenu(Doctor doctor, int choice, Scanner scanner, AppointmentManager manager) {
+    private static boolean handleDoctorMenu(Doctor doctor, int choice, Scanner scanner, AppointmentManager manager, List<Patient> patients) {
     switch (choice) {
-        case 1: /* View Patient Medical Records
+        case 1: // View Patient Medical Records
             System.out.print("Enter Patient ID to view records: ");
-            String patientID = scanner.nextLine();
-            Patient patient = AppointmentManager.findPatientById(patientID); // Placeholder for method to find a patient
-            if (patient != null) {
-                doctor.viewPatientRecords(patient);
-            } else {
-                System.out.println("Patient not found.");
-            }
-            */
+            String patientID1 = scanner.nextLine();
+
+            // Find patient from the list
+            Patient patient1 = patients.stream()
+                    .filter(p -> p.getHospitalID().equals(patientID1))
+                    .findFirst()
+                    .orElse(null);
+
+            doctor.viewPatientRecords(patient1);
             break;
 
-        case 2: /* Update Patient Medical Records
-            System.out.print("Enter Patient ID to update records: ");
-            patientID = scanner.nextLine();
-            patient = AppointmentManager.findPatientById(patientID); // Placeholder for method to find a patient
-            if (patient != null) {
-                System.out.print("Enter Diagnosis: ");
-                String diagnosis = scanner.nextLine();
-                System.out.print("Enter Treatment: ");
-                String treatment = scanner.nextLine();
-                doctor.updatePatientRecord(patient, diagnosis, treatment);
-            } else {
-                System.out.println("Patient not found.");
-            }
-            */
+        case 2: // Update Patient Medical Records
+            System.out.print("Enter Patient ID to view records: ");
+            String patientID2 = scanner.nextLine();
+
+            // Find patient from the list
+            Patient patient2 = patients.stream()
+                    .filter(p -> p.getHospitalID().equals(patientID2))
+                    .findFirst()
+                    .orElse(null);
+            
+            System.out.println("Enter Diagnosis");
+            String diagnosis = scanner.nextLine();
+            System.out.println("Enter Treatment");
+            String treatment = scanner.nextLine();
+            doctor.updatePatientRecord(patient2, diagnosis, treatment);
+
             break;
 
         case 3: // View Personal Schedule
-            List<Appointment> appointments = doctor.getUpcomingAppointments();
+            List<Appointment> appointments = manager.getAppointmentsByDoctor(doctor);
             if (appointments.isEmpty()) {
                 System.out.println("No upcoming appointments.");
             } else {
@@ -196,33 +258,38 @@ public class Application {
             break;
 
         case 5: // Accept or Decline Appointment Requests
-            List<Appointment> pendingAppointments = doctor.getAvailableAppointments(); // Fetching only available ones
-            if (pendingAppointments.isEmpty()) {
-                System.out.println("No pending appointment requests.");
-            } else {
-                for (int i = 0; i < pendingAppointments.size(); i++) {
-                    System.out.println((i + 1) + ". " + pendingAppointments.get(i));
-                }
-                System.out.print("Select an appointment to process (1-" + pendingAppointments.size() + "): ");
-                int selection = scanner.nextInt();
-                scanner.nextLine(); // Consume newline
+        List<Appointment> pendingAppointments = manager.getPendingAppointments();
+        List<Appointment> doctorPending = pendingAppointments.stream()
+            .filter(app -> app.getDoctor().equals(doctor))
+            .toList();
 
-                if (selection >= 1 && selection <= pendingAppointments.size()) {
-                    Appointment selectedAppointment = pendingAppointments.get(selection - 1);
-                    System.out.print("Accept or Decline (accept/decline): ");
-                    String decision = scanner.nextLine();
-                    if (decision.equalsIgnoreCase("accept")) {
-                        doctor.acceptAppointment(selectedAppointment);
-                    } else if (decision.equalsIgnoreCase("decline")) {
-                        doctor.declineAppointment(selectedAppointment);
-                    } else {
-                        System.out.println("Invalid input. Returning to menu.");
-                    }
-                } else {
-                    System.out.println("Invalid selection.");
-                }
+        if (doctorPending.isEmpty()) {
+            System.out.println("No pending appointment requests.");
+        } else {
+            for (int i = 0; i < doctorPending.size(); i++) {
+                System.out.println((i + 1) + ". " + doctorPending.get(i));
             }
-            break;
+            System.out.print("Select an appointment to process (1-" + doctorPending.size() + "): ");
+            int selection = scanner.nextInt();
+            scanner.nextLine();
+
+            if (selection >= 1 && selection <= doctorPending.size()) {
+                Appointment selectedAppointment = doctorPending.get(selection - 1);
+                System.out.print("Accept or Decline (accept/decline): ");
+                String decision = scanner.nextLine();
+                if (decision.equalsIgnoreCase("accept")) {
+                    doctor.acceptAppointment(manager, selectedAppointment);
+
+                } else if (decision.equalsIgnoreCase("decline")) {
+                    doctor.declineAppointment(manager, selectedAppointment);
+                } else {
+                    System.out.println("Invalid input.");
+                }
+            } else {
+                System.out.println("Invalid selection.");
+            }
+        }
+        break;
 
         case 6: // View Upcoming Appointments
             appointments = doctor.getUpcomingAppointments();
@@ -235,34 +302,59 @@ public class Application {
             }
             break;
 
-        case 7: /* Record Appointment Outcome
-            System.out.print("Enter Patient ID to record outcome: ");
-            patientID = scanner.nextLine();
-            patient = AppointmentManager.findPatientById(patientID); // Placeholder for patient fetching
-            if (patient != null) {
-                try {
-                    System.out.print("Enter appointment date (dd/MM/yyyy): ");
-                    Date date = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
-                    System.out.print("Enter appointment time (HH:mm): ");
-                    Time time = Time.valueOf(scanner.nextLine() + ":00");
+        case 7: // Record Appointment Outcome
+            System.out.println("Enter Patient ID for the appointment:");
+            String patientID3 = scanner.nextLine();
 
-                    Appointment appointment = AppointmentManager.findAppointment(patient, date, time); // Placeholder
-                    if (appointment != null) {
-                        System.out.print("Enter service type: ");
-                        String serviceType = scanner.nextLine();
-                        System.out.print("Enter notes: ");
-                        String notes = scanner.nextLine();
-                        doctor.recordAppointmentOutcome(appointment, serviceType, notes);
-                    } else {
-                        System.out.println("Appointment not found.");
-                    }
-                } catch (ParseException | IllegalArgumentException e) {
-                    System.out.println("Invalid date/time format.");
-                }
-            } else {
-                System.out.println("Patient not found.");
+            // Find patient from the list
+            Patient patient3 = patients.stream()
+                    .filter(p -> p.getHospitalID().equals(patientID3))
+                    .findFirst()
+                    .orElse(null);
+
+            if (patient3 == null) {
+                System.out.println("Invalid Patient ID.");
+                break;
             }
-            */
+
+            // Display confirmed appointments for the selected patient
+            List<Appointment> confirmedAppointments = patient3.getAppointmentHistory().stream()
+                    .filter(app -> app.getStatus().equalsIgnoreCase("confirmed"))
+                    .toList();
+
+            if (confirmedAppointments.isEmpty()) {
+                System.out.println("No confirmed appointments found for this patient.");
+                break;
+            }
+
+            System.out.println("Confirmed Appointments:");
+            for (int i = 0; i < confirmedAppointments.size(); i++) {
+                System.out.println((i + 1) + ". " + confirmedAppointments.get(i));
+            }
+
+            System.out.print("Select an appointment to record the outcome (1-" + confirmedAppointments.size() + "): ");
+            int appointmentChoice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            if (appointmentChoice < 1 || appointmentChoice > confirmedAppointments.size()) {
+                System.out.println("Invalid appointment selection.");
+                break;
+            }
+
+            Appointment selectedAppointment = confirmedAppointments.get(appointmentChoice - 1);
+
+            // Prompt for service type and notes
+            System.out.print("Enter the service type: ");
+            String serviceType = scanner.nextLine();
+
+            System.out.print("Enter the Medication: ");
+            String medicine = scanner.nextLine();
+
+            System.out.print("Enter any additional notes: ");
+            String notes = scanner.nextLine();
+
+            // Record the outcome using Doctor's method
+            doctor.recordAppointmentOutcome(selectedAppointment, serviceType, medicine, notes);
             break;
 
         case 8: // Logout
@@ -280,68 +372,62 @@ public class Application {
             case 1: // View Medical Record
                 patient.viewMedicalRecord();
                 break;
+
             case 2: // Update Contact Information
                 System.out.println("Enter the new contact information: ");
                 String newContactInfo = scanner.nextLine();
                 patient.updateContactInfo(newContactInfo);
                 break;
+
             case 3: // View Available Appointments
                 patient.viewAvailableAppointments(manager);
                 break;
+
             case 4: // Schedule Appointment
-                try {
-                    System.out.println("Enter the appointment date (dd/MM/yyyy): ");
-                    Date appointmentDate = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
-                    System.out.println("Enter the appointment time (HH:mm): ");
-                    Time appointmentTime = Time.valueOf(scanner.nextLine() + ":00");
-                    patient.scheduleAppointment(doctor, appointmentDate, appointmentTime);
-                } catch (ParseException | IllegalArgumentException e) {
-                    System.out.println("Invalid date/time format. Please try again.");
+                if (!manager.scheduleAppointment(patient, scanner)) {
+                    System.out.println("Failed to schedule an appointment. Please try again.");
                 }
                 break;
+
             case 5: // Reschedule Appointment
-                try {
-                    System.out.println("Enter the current appointment date (dd/MM/yyyy): ");
-                    Date currentDate = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
-                    System.out.println("Enter the current appointment time (HH:mm): ");
-                    Time currentTime = Time.valueOf(scanner.nextLine() + ":00");
-
-                    System.out.println("Enter the new appointment date (dd/MM/yyyy): ");
-                    Date newDate = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
-                    System.out.println("Enter the new appointment time (HH:mm): ");
-                    Time newTime = Time.valueOf(scanner.nextLine() + ":00");
-
-                    Appointment appointment = manager.findAppointment(currentDate, currentTime);
-                    if (appointment != null) {
-                        patient.rescheduleAppointment(appointment, newDate, newTime);
-                    } else {
-                        System.out.println("Appointment not found.");
-                    }
-                } catch (ParseException | IllegalArgumentException e) {
-                    System.out.println("Invalid date/time format. Please try again.");
+                if (!manager.rescheduleAppointment(patient, scanner)) {
+                    System.out.println("Rescheduling failed. Please try again.");
                 }
                 break;
+
             case 6: // Cancel Appointment
-                try {
-                    System.out.println("Enter the appointment date to cancel (dd/MM/yyyy): ");
-                    Date date = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
-                    System.out.println("Enter the appointment time to cancel (HH:mm): ");
-                    Time time = Time.valueOf(scanner.nextLine() + ":00");
-
-                    Appointment appointmentToCancel = manager.findAppointment(date, time);
-                    if (appointmentToCancel != null) {
-                        patient.cancelAppointment(appointmentToCancel);
-                    } else {
-                        System.out.println("No appointment found for the provided date and time.");
-                    }
-                } catch (ParseException | IllegalArgumentException e) {
-                    System.out.println("Invalid date/time format. Please try again.");
+                if (!manager.cancelAppointment(patient, scanner)) {
+                    System.out.println("Cancellation failed. Please try again.");
                 }
                 break;
-            case 7: // View scheduled appointment
-                System.out.println("still making this");
+
+            case 7: // View Scheduled Appointments
+                System.out.println("Your confirmed appointments:");
+                List<Appointment> confirmedAppointments = manager.getConfirmedAppointments(patient);
+                
+                if (confirmedAppointments.isEmpty()) {
+                    System.out.println("You have no confirmed appointments.");
+                } else {
+                    for (int i = 0; i < confirmedAppointments.size(); i++) {
+                        System.out.println((i + 1) + ". " + confirmedAppointments.get(i));
+                    }
+                }
                 break;
-            case 8: // Logout
+            
+            case 8: // View Past Appointment Outcome Records
+                System.out.println("Your past completed appointments:");
+                List<Appointment> completedAppointments = manager.getCompletedAppointments(patient);
+                
+                if (completedAppointments.isEmpty()) {
+                    System.out.println("You have no past appointment outcome records.");
+                } else {
+                    for (int i = 0; i < completedAppointments.size(); i++) {
+                        System.out.println((i + 1) + ". " + completedAppointments.get(i));
+                    }
+                }
+                break;
+                
+            case 9: // Logout
                 return true;  // Indicate logout
             default:
                 System.out.println("Invalid option for Patient.");

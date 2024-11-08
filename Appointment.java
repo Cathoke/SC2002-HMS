@@ -8,6 +8,7 @@ public class Appointment {
     private Time appointmentTime;
     private String status; // e.g., "confirmed", "cancelled", "completed"
     private String serviceType; // e.g., "Consultation", "Follow-up"
+    private String medicine;
     private String notes; // Notes for the appointment outcome
 
     // Constructor
@@ -18,6 +19,7 @@ public class Appointment {
         this.appointmentTime = appointmentTime;
         this.status = status;
         this.serviceType = ""; // Default to empty
+        this.medicine = "";
         this.notes = ""; // Default to empty
     }
 
@@ -70,6 +72,14 @@ public class Appointment {
         this.serviceType = serviceType;
     }
 
+    public String getMedicine(){
+        return medicine;
+    }
+
+    public void setMedicine(String medicine){
+        this.medicine = medicine;
+    }
+
     public String getNotes() {
         return notes;
     }
@@ -91,7 +101,8 @@ public class Appointment {
                 ", Status: " + status +
                 ", Service Type: " + serviceType +
                 ", Notes: " + notes +
-                ", Patient: " + patient.getName() +
-                ", Doctor: " + doctor.getName() + "]";
+                ", Medicine: " + medicine +
+                ", Patient: " + (patient != null ? patient.getName() : "N/A") +
+                ", Doctor: " + (doctor != null ? doctor.getName() : "N/A")+ "]";
     }
 }

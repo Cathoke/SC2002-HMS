@@ -1,13 +1,6 @@
-
-import java.sql.Time;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class Patient extends User {
-    private String patientID;
-    private String name;
-    private String password;
     private String dateOfBirth;
     private String gender;
     private String contactInfo;
@@ -16,24 +9,16 @@ public class Patient extends User {
     private List<MedicalRecord> medicalRecords;
 
     // Constructor
-    public Patient(String patientID, String dateOfBirth, String gender, String contactInfo, String bloodType,
-            String name, String password, List appointmentHistory, List medicalRecords) {
-        super(patientID, password, name);
+    public Patient(String patientID, String dateOfBirth, String gender, String contactInfo, String bloodType, String name, String password, List<Appointment> appointmentHistory, List<MedicalRecord> medicalRecords) {
+        super(patientID, password, name); // Calls the User constructor
+        //this.patientID = patientID;       // Correctly set the patientID
+        //this.name = name;
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
         this.contactInfo = contactInfo;
         this.bloodType = bloodType;
-        this.medicalRecords = new ArrayList<>();
-        this.appointmentHistory = new ArrayList<>();
-    }
-
-    // getter methods
-    public String getPatientID() {
-        return patientID;
-    }
-
-    public String getName() {
-        return name;
+        this.medicalRecords = medicalRecords;  // Use the provided list, avoid redundant ArrayList creation
+        this.appointmentHistory = appointmentHistory;
     }
 
     public String getDateOfBirth() {
@@ -62,12 +47,13 @@ public class Patient extends User {
 
     // Method to add a medical record
     public void addMedicalRecord(String diagnosis, String treatment, String date) {
-        MedicalRecord medicalRecords = new MedicalRecord(diagnosis, treatment, date);
+        MedicalRecord record = new MedicalRecord(diagnosis, treatment, date);
+        this.medicalRecords.add(record);
     }
 
     // To view Medical Records
     public void viewMedicalRecord() {
-        System.out.println("Patient ID: " + patientID);
+        System.out.println("Patient ID: " + hospitalID);
         System.out.println("Name: " + name);
         System.out.println("Date of Birth: " + dateOfBirth);
         System.out.println("Gender: " + gender);
@@ -88,52 +74,65 @@ public class Patient extends User {
         this.contactInfo = contactInfo;
     }
 
-    // To View Appointments
+    public void addAppointmentToHistory(Appointment appointment) {
+        appointmentHistory.add(appointment);
+    }
+
     public void viewAvailableAppointments(AppointmentManager manager) {
         List<Appointment> availableAppointments = manager.getAvailableAppointments();
         System.out.println("Available Appointment Slots:");
+        
         if (availableAppointments.isEmpty()) {
             System.out.println("No available appointments.");
         } else {
-            for (Appointment appointment : availableAppointments) {
-                System.out.println("Date: " + appointment.getAppointmentDate() + ", Time: " + appointment.getAppointmentTime() + ", Doctor: " + appointment.getDoctor().getName());
+            for (int i = 0; i < availableAppointments.size(); i++) {
+                Appointment appointment = availableAppointments.get(i);
+                String doctorName = (appointment.getDoctor() != null) ? appointment.getDoctor().getName() : "Unknown";
+                System.out.println((i + 1) + ". Date: " + appointment.getAppointmentDate() + 
+                                ", Time: " + appointment.getAppointmentTime() + 
+                                ", Doctor: " + doctorName);
             }
         }
     }
 
+    /*public void scheduleAppointment(Scanner scanner, AppointmentManager manager) {
+        List<Appointment> availableAppointments = manager.getAvailableAppointments();
+        
+        if (availableAppointments.isEmpty()) {
+            System.out.println("No available appointments to schedule.");
+            return;
+        }
+        
+        System.out.println("Available Appointment Slots:");
+        for (int i = 0; i < availableAppointments.size(); i++) {
+            Appointment appointment = availableAppointments.get(i);
+            String doctorName = (appointment.getDoctor() != null) ? appointment.getDoctor().getName() : "Unknown";
+            System.out.println((i + 1) + ". Date: " + appointment.getAppointmentDate() + 
+                            ", Time: " + appointment.getAppointmentTime() + 
+                            ", Doctor: " + doctorName);
+        }
+        
+        System.out.print("Enter the number of the appointment slot you'd like to book (1-" + availableAppointments.size() + "): ");
+        
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
 
-    public void scheduleAppointment(Doctor doctor, Date date, Time time) {
-        // Create a new Appointment object to check availability
-        Appointment newAppointment = new Appointment(this, doctor, date, time, "available");
-
-        // Assuming each doctor has a list of available appointments
-        List<Appointment> doctorAppointments = doctor.getAvailableAppointments();
-
-        boolean isScheduled = false;
-
-        for (Appointment appointment : doctorAppointments) {
-            if (appointment.getAppointmentDate().equals(newAppointment.getAppointmentDate()) &&
-                    appointment.getAppointmentTime().equals(newAppointment.getAppointmentTime()) &&
-                    appointment.getStatus().equalsIgnoreCase("available")) {
-
-                // Mark the appointment as confirmed
-                appointment.updateStatus("requested");
-
-                // Add the appointment to the patient's appointment history
-                appointmentHistory.add(appointment);
-                System.out.println("Appointment requested on " + date + " at " + time + " with Dr. "
-                        + doctor.getName());
-                isScheduled = true;
-                break;
-            }
+        if (choice < 1 || choice > availableAppointments.size()) {
+            System.out.println("Invalid selection. Please try again.");
+            return;
         }
 
-        if (!isScheduled) {
-            System.out.println("The selected appointment slot is unavailable. Please choose a different time.");
-        }
-    }
+        Appointment selectedAppointment = availableAppointments.get(choice - 1);
+        selectedAppointment.setPatient(this);  // Link the patient to the appointment
+        selectedAppointment.updateStatus("requested");  // Mark as requested
 
-    public void rescheduleAppointment(Appointment appointment, Date newDate, Time newTime) {
+        // Add the appointment to the patient's history
+        appointmentHistory.add(selectedAppointment);
+
+        System.out.println("Appointment requested successfully: " + selectedAppointment);
+    } */
+
+    /*public void rescheduleAppointment(Appointment appointment, Date newDate, Time newTime) {
         // Get the doctor associated with the current appointment
         Doctor doctor = appointment.getDoctor();
 
@@ -147,10 +146,10 @@ public class Patient extends User {
                     availableAppointment.getStatus().equalsIgnoreCase("available")) {
 
                 // Cancel the current appointment by updating its status
-                appointment.updateStatus("cancelled");
+                appointment.updateStatus("available");
 
                 // Update the new appointment status to confirmed
-                availableAppointment.updateStatus("confirmed");
+                availableAppointment.updateStatus("requested");
 
                 // Add the new appointment to the appointment history
                 appointmentHistory.add(availableAppointment);
@@ -166,9 +165,9 @@ public class Patient extends User {
             System.out.println("The selected slot on " + newDate + " at " + newTime
                     + " is unavailable. Please choose a different time.");
         }
-    }
+    } */
 
-    public void cancelAppointment(Appointment appointment) {
+    /* public void cancelAppointment(Appointment appointment) {
         if (appointment == null) {
             System.out.println("Invalid appointment. Please provide a valid appointment to cancel.");
             return;
@@ -189,7 +188,7 @@ public class Patient extends User {
         System.out.println(
                 "Appointment on " + appointment.getAppointmentDate() + " at " + appointment.getAppointmentTime() +
                         " with Dr. " + appointment.getDoctor().getName() + " has been cancelled.");
-    }
+    } */
 
     public void viewScheduledAppointments() {
         System.out.println("Scheduled Appointments:");
@@ -221,7 +220,8 @@ public class Patient extends User {
         System.out.println("5. Reschedule Appointment");
         System.out.println("6. Cancel Appointment");
         System.out.println("7. View Scheduled Appointments");
-        System.out.println("0. Exit");
+        System.out.println("8. View Past Appointment Outcome Records");
+        System.out.println("9. Exit");
     }
 
 }
