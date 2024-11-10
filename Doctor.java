@@ -127,7 +127,7 @@ public class Doctor extends User {
         System.out.println("Appointment declined successfully.");
     }
 
-    public void recordAppointmentOutcome(Appointment appointment, String serviceType, String medicine, String notes) {
+    public void recordAppointmentOutcome(Appointment appointment, String serviceType, String Medicine, String Status, int Quantity, String notes) {
         if (appointment == null) {
             System.out.println("Invalid appointment. Please provide a valid appointment.");
             return;
@@ -150,7 +150,7 @@ public class Doctor extends User {
         // Update appointment details with the outcome
         appointment.setServiceType(serviceType);
         appointment.setNotes(notes);
-        appointment.setMedicine(medicine);
+        appointment.setPrescription(Medicine, Status, Quantity);
         appointment.updateStatus("completed"); // Mark the appointment as completed
 
         System.out.println("Appointment outcome recorded successfully for the appointment on " +
@@ -175,5 +175,8 @@ public class Doctor extends User {
         System.out.println("7. Record Appointment Outcome");
         System.out.println("8. Logout");
     }
+
+
+    
 
 }

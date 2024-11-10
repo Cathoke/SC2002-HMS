@@ -159,7 +159,7 @@ public class Application {
                 logout = handlePatientMenu(patUser, choice, null, scanner, manager);  // Capture logout status
             } else if (user instanceof Pharmacist) {
                 Pharmacist pharmacist = (Pharmacist) user;
-                handlePharmacistMenu(pharmacist, choice, scanner);
+                handlePharmacistMenu(pharmacist, choice, scanner, patients);
             } else {
                 System.out.println("Invalid role.");
             }
@@ -347,14 +347,17 @@ public class Application {
             System.out.print("Enter the service type: ");
             String serviceType = scanner.nextLine();
 
-            System.out.print("Enter the Medication: ");
-            String medicine = scanner.nextLine();
-
             System.out.print("Enter any additional notes: ");
             String notes = scanner.nextLine();
 
+            System.out.println("Enter medicine name");
+            String med=scanner.next();
+            String stat="pending";
+            System.out.println("enter quantity of medicine");
+            int q=scanner.nextInt();
+
             // Record the outcome using Doctor's method
-            doctor.recordAppointmentOutcome(selectedAppointment, serviceType, medicine, notes);
+            doctor.recordAppointmentOutcome(selectedAppointment, serviceType, med, stat,q, notes);
             break;
 
         case 8: // Logout
@@ -435,11 +438,109 @@ public class Application {
         return false;  // Continue in Patient menu
     }
 
-    private static void handlePharmacistMenu(Pharmacist pharmacist, int choice, Scanner scanner) {
+    private static void handlePharmacistMenu(Pharmacist pharmacist, int choice, Scanner scanner, List<Patient> patients) {
         switch (choice) {
-            case 1: // Update Prescriptions
+            case 1: // view appointment outcome
+                System.out.println("Enter appointment details:");
+
+                boolean validInput = false;
+                while (!validInput) {
+                    try {
+
+                        System.out.print("Enter Patient ID: ");
+                        String patientId = scanner.nextLine();
+                        // Find patient from the list
+                        Patient patient1 = patients.stream()
+                        .filter(p -> p.getHospitalID().equals(patientId))
+                        .findFirst()
+                        .orElse(null);
+
+
+
+                        System.out.print("Enter appointment date (dd/MM/yyyy): ");
+                        Date appointmentDate = new SimpleDateFormat("dd/MM/yyyy").parse(scanner.nextLine());
+
+                        System.out.print("Enter appointment time (HH:mm): ");
+                        Time appointmentTime = Time.valueOf(scanner.nextLine() + ":00");
+
+                        AppointmentManager apt=new AppointmentManager();
+                        List<Appointment> appointments=apt.getCompletedAppointments(patient1);
+
+                        
+                        for( Appointment appointment: appointments){// View and update prescription for the fetched/created appointment
+                            pharmacist.viewAppointmentOutcomeRecord(appointment);
+                            validInput = true; // Exit loop if inputs are valid
+                        }    
+
+                        // // Find the specific appointment by date and time
+                        // Appointment appointment = appointments.stream()
+                        // .filter(a -> a.getAppointmentDate().equals(appointmentDate) && a.getAppointmentTime().equals(appointmentTime))
+                        // .findFirst()
+                        // .orElse(null);
+
+                        // if (appointment == null) {
+                        //     System.out.println("No existing appointment found. Creating a new appointment...");
+
+                        // }
+
+                    } catch (ParseException e) {
+                        System.out.println("Invalid date format. Please enter the date in dd/MM/yyyy format.");
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("Invalid time format. Please enter the time in HH:mm format.");
+                    } catch (Exception e) {
+                        System.out.println("An error occurred while handling the appointment. Please try again.");
+                    }
+                }
+                break;
+
+            case 2://update prescription status
+                System.out.print("Enter Patient ID: ");
+                String patientId = scanner.nextLine();
+                // Find patient from the list
+                Patient patient2 = patients.stream()
+                .filter(p -> p.getHospitalID().equals(patientId))
+                .findFirst()
+                .orElse(null);
+                // Create a dummy Prescription object
+                AppointmentManager apt2=new AppointmentManager();
+                List<Appointment> Appointment_list=apt2.getCompletedAppointments(patient2);
+                Appointment a=Appointment_list.get(Appointment_list.size()-1);
+                Prescription b=a.getPrescription();
+
+                System.out.print("Enter new status: ");
+                String status = scanner.nextLine();
+                
+                pharmacist.updatePrescriptionStatus(b, status);
                 System.out.println("Prescription updated.");
                 break;
+
+            case 3://view medical inventory
+                System.out.println("Medication Inventory:");
+                System.out.println("Medicine Name\tCurrent Stock");
+
+                // Simple array-based inventory
+                String[] medicines = {"Paracetamol", "Ibuprofen", "Amoxicillin"};
+                int[] stock = {50, 20, 10};
+
+                for (int i = 0; i < medicines.length; i++) {
+                    System.out.println(medicines[i] + "\t\t" + stock[i]);
+                }
+                break;
+
+            case 4://submit replenishment request
+                System.out.print("Enter medication name: ");//havent checked if he put wrong medicine
+                String medName = scanner.nextLine();
+                System.out.print("Enter quantity to replenish: ");
+                int quantity = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+                pharmacist.submitReplenishmentRequest(medName, quantity);
+                break;
+            
+            case 5://logout
+                System.out.println("Logging out... Goodbye!");
+                // Optionally, break out of the current loop or end the session
+                break;
+
             default:
                 System.out.println("Invalid option for Pharmacist.");
         }
