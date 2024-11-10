@@ -119,6 +119,7 @@ public class Doctor extends User {
         }
     }
 
+    //accept appointment
     public void acceptAppointment(Appointment appointment) {
         if (appointment == null) {
             System.out.println("Invalid appointment. Please provide a valid appointment.");
