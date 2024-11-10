@@ -65,6 +65,8 @@ public class Pharmacist extends User {
     public void displayMenu() {
         System.out.println("1. View Appointment Outcome");
         System.out.println("2. Update Prescription Status");
-        System.out.println("3. Submit Replenishment Request");
+        System.out.println("3. View medical  inventory ");
+        System.out.println("4. Submit Replenishment Request");
+        System.out.println("5. Logout                      ");
     }
 }

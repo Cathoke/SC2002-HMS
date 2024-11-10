@@ -6,7 +6,7 @@ public abstract class User {
     // Constructor method
     public User(String hospitalID, String password, String name) {
         this.hospitalID = hospitalID;
-        this.password = "password";
+        this.password = password; // Use the password passed as an argument
         this.name = name;
     }
 
@@ -18,6 +18,11 @@ public abstract class User {
     // Getter for Hospital ID
     public String getHospitalID() {
         return hospitalID;
+    }
+
+    //Getter for Name
+    public String getName(){
+        return name;
     }
 
     // Login Method
@@ -37,5 +42,4 @@ public abstract class User {
 
     // Abstract Method
     public abstract void displayMenu();
-
 }
