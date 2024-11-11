@@ -4,16 +4,16 @@ import java.util.Date;
 import java.util.List;
 
 public class Doctor extends User {
-    //private String doctorID;
-    //private String name;
-    //private String password;
+    // private String doctorID;
+    // private String name;
+    // private String password;
     private List<Appointment> upcomingAppointments;
 
     // Constructor Method
     public Doctor(String doctorID, String name, String password, List<Appointment> upcomingAppointments) {
         super(doctorID, password, name);
-        //this.doctorID = doctorID;
-        //this.name = name;
+        // this.doctorID = doctorID;
+        // this.name = name;
         this.upcomingAppointments = new ArrayList<>(upcomingAppointments);
     }
 
@@ -83,7 +83,8 @@ public class Doctor extends User {
         patient.addMedicalRecord(diagnosis, treatment, currentDate);
 
         System.out.println("Patient record updated successfully.");
-        System.out.println("Added new record: Diagnosis - " + diagnosis + ", Treatment - " + treatment + ", Date - " + currentDate);
+        System.out.println("Added new record: Diagnosis - " + diagnosis + ", Treatment - " + treatment + ", Date - "
+                + currentDate);
     }
 
     public void setAvailability(Date date, Time time, boolean isAvailable, AppointmentManager manager) {
@@ -103,18 +104,13 @@ public class Doctor extends User {
         }
     }
 
-<<<<<<< HEAD
-    //accept appointment
-    public void acceptAppointment(Appointment appointment) {
-        if (appointment == null) {
-            System.out.println("Invalid appointment. Please provide a valid appointment.");
-=======
-
-
+    /**
+     * @param manager
+     * @param appointment
+     */
     public void acceptAppointment(AppointmentManager manager, Appointment appointment) {
         if (appointment == null || !appointment.getStatus().equalsIgnoreCase("requested")) {
             System.out.println("Invalid or non-requested appointment.");
->>>>>>> atharva
             return;
         }
 
@@ -134,7 +130,8 @@ public class Doctor extends User {
         System.out.println("Appointment declined successfully.");
     }
 
-    public void recordAppointmentOutcome(Appointment appointment, String serviceType, String Medicine, String Status, int Quantity, String notes) {
+    public void recordAppointmentOutcome(Appointment appointment, String serviceType, String Medicine, String Status,
+            int Quantity, String notes) {
         if (appointment == null) {
             System.out.println("Invalid appointment. Please provide a valid appointment.");
             return;
@@ -182,8 +179,5 @@ public class Doctor extends User {
         System.out.println("7. Record Appointment Outcome");
         System.out.println("8. Logout");
     }
-
-
-    
 
 }
